@@ -1,0 +1,41 @@
+name: VM FREE - US
+
+on: workflow_dispatch
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+    timeout-minutes: 1234
+
+    steps:
+    - name: Tải xuống Ngrok và các tiệp tin bổ sung.
+      run: |
+        Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+        Invoke-WebRequest https://raw.githubusercontent.com/NET30s/vm-source/main/files/start.bat -OutFile start.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/NET30s/vm-source/main/files/info.bat -OutFile info.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/NET30s/vm-source/main/files/config.bat -OutFile config.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/NET30s/vm-source/main/files/LINK%20DATA.url -OutFile "LINK DATA.url"
+        Invoke-WebRequest https://raw.githubusercontent.com/NET30s/vm-source/main/files/NEW%20PASSWORD.BAT -OutFile "NEW PASSWORD.BAT"
+    - name: Giải nén Ngrok.
+      run: Expand-Archive ngrok.zip
+    - name: Tạo tiệp tin cấu hình Ngrok.
+      run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+      env:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+    - name: Kích hoạt điều khiển từ xa.
+      run: | 
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+        copy config.bat D:\a\config.bat
+        copy "LINK DATA.url" "C:\Users\Public\Desktop\LINK DATA.url"
+        copy "NEW PASSWORD.BAT" "C:\Users\Public\Desktop\NEW PASSWORD.BAT"
+    - name: Thiết lập kết nối.
+      run: Start-Process Powershell -ArgumentList '-Noexit -Command ".\ngrok\ngrok.exe tcp --region us 3389"'
+    - name:  Khởi tạo tài khoản người dùng Windows.
+      run: ./start.bat
+    - name: Hoàn tất ! Xem thông tin chi tiết bên dưới.
+      run: ./info.bat
+    - name: Thời gian sử dụng VPS miễn phí trong 6 giờ.
+      run: sleep 21600
